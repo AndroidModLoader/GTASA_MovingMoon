@@ -11,8 +11,6 @@
 #include "SimpleGTA.h"
 #include "vars.inl"
 
-//void (*glColorMask)(bool, bool, bool, bool);
-
 MYMOD(net.rusjj.movingmoon, Moving Moon, 1.0, CowBoy69 & RusJJ)
 NEEDGAME(com.rockstargames.gtasa)
 
@@ -21,6 +19,7 @@ void *hGTASA;
 
 
 CVector MoonVector;
+bool MoonVisible = false;
 inline float SQR(float v) { return v*v; }
 DECL_HOOKv(RenderClouds)
 {
@@ -30,82 +29,52 @@ DECL_HOOKv(RenderClouds)
     
     float coverage = fmaxf(*Foggyness, *CloudCoverage);
     float decoverage = 1.0f - coverage;
-    
-    // Moon
-    float minute = 60.0f * *ms_nGameClockHours + *ms_nGameClockMinutes;
-    int moonfadeout;
-    float smoothBrightnessAdjust = 1.9f;
-    if(minute > 1100)
-    {
-        moonfadeout = (int)(fabsf(minute - 1100.0f) / smoothBrightnessAdjust);
-    }
-    else if(minute < 240)
-    {
-        moonfadeout = 180;
-    }
-    else
-    {
-        moonfadeout = (int)(180.0f - fabsf(minute - 240.0f) * smoothBrightnessAdjust);
-    }
-    
-    if (moonfadeout > 0 && moonfadeout < 340)
-    {
-        CVector& vecsun = m_VectorToSun[*m_CurrentStoredValue];
-        MoonVector = { -vecsun.x, -vecsun.y, -(IMPROVED_MOON_HEIGHT / 150.0f) * vecsun.z }; // normalized vector (important for DotProd)
-        RwV3d pos = { 150.0f * MoonVector.x, 150.0f * MoonVector.y, 150.0f * MoonVector.z };
+    MoonVisible = false;
 
-        CamPos = &(*(CMatrix**)(TheCamera + 20))->pos;
-        
-        worldpos = pos + *CamPos;
-        if(CalcScreenCoors(&worldpos, &screenpos, &szx, &szy, false, true))
+    if(decoverage != 0)
+    {
+        // Moon
+        float minute = 60.0f * *ms_nGameClockHours + *ms_nGameClockMinutes;
+        int moonfadeout;
+        float smoothBrightnessAdjust = 1.9f;
+        if(minute > 1100)
         {
-            RwRenderStateSet(8, (void*)0);
-            RwRenderStateSet(6, (void*)0);
-            RwRenderStateSet(12, (void*)1);
-            RwRenderStateSet(10, (void*)2);
-            RwRenderStateSet(11, (void*)2);
-    
-            RwRenderStateSet(1, *(gpCoronaTexture[2]));
-            float sz = *MoonSize * 2.7f + 4.0f;
-            int brightness = decoverage * moonfadeout;
-            RenderBufferedOneXLUSprite(screenpos, szx * sz, szy * sz, brightness, brightness, brightness, 255, 1.0f / screenpos.z, 255);
-            FlushSpriteBuffer();
+            moonfadeout = (int)(fabsf(minute - 1100.0f) / smoothBrightnessAdjust);
+        }
+        else if(minute < 240)
+        {
+            moonfadeout = 180;
+        }
+        else
+        {
+            moonfadeout = (int)(180.0f - fabsf(minute - 240.0f) * smoothBrightnessAdjust);
+        }
+        
+        if (moonfadeout > 0 && moonfadeout < 340)
+        {
+            CVector& vecsun = m_VectorToSun[*m_CurrentStoredValue];
+            MoonVector = { -vecsun.x, -vecsun.y, -(IMPROVED_MOON_HEIGHT / 150.0f) * vecsun.z }; // normalized vector (important for DotProd)
+            RwV3d pos = { 150.0f * MoonVector.x, 150.0f * MoonVector.y, 150.0f * MoonVector.z };
 
+            CamPos = &(*(CMatrix**)(TheCamera + 20))->pos;
+            
+            worldpos = pos + *CamPos;
+            if(CalcScreenCoors(&worldpos, &screenpos, &szx, &szy, false, true))
+            {
+                MoonVisible = true;
 
-
-            /*screenpos.z = *ms_fFarClipZ;
-            float sz = *MoonSize * 2.0f + 4.0f;
-            int brightness = decoverage * (180 - moonfadeout);
-            brightness = 255; // debug
-            
-            RwRenderStateSet(1, (void*)0);
-            RwRenderStateSet(10, (void*)5);
-            RwRenderStateSet(11, (void*)2);
-            
-            RenderBufferedOneXLUSprite(screenpos, szx * sz * 0.5f, szy * sz * 1.2f, 0, 0, 0, 255, 1.0f / screenpos.z, 255);
-            FlushSpriteBuffer();
-            
-            RwRenderStateSet(1, **gpMoonMask);
-            RwRenderStateSet(10, (void*)5);
-            RwRenderStateSet(11, (void*)2);
-            //float x2 = screenpos.x;
-            //screenpos.x += 32.0f;
-            RenderBufferedOneXLUSprite(screenpos, szx * sz, szy * sz, 0, 0, 0, 0, 1.0f / screenpos.z, 255);
-            FlushSpriteBuffer();
-            //screenpos.x = x2;
-            
-            //glColorMask(0,0,0,1);
-            RwRenderStateSet(1, *(gpCoronaTexture[2]));
-            RwRenderStateSet(10, (void*)7);
-            RwRenderStateSet(11, (void*)2);
-            RwRenderStateSet(8, (void*)0);
-            
-            RenderBufferedOneXLUSprite(screenpos, szx * sz, szy * sz, brightness, brightness, brightness, 255, 1.0f / screenpos.z, 255);
-            FlushSpriteBuffer();
-            //glColorMask(1,1,1,1);
-            */
-            
-            //logger->Info("Screen? %f %f %f %f %f %f %d %f", screenpos.x, screenpos.y, screenpos.z, sz, szx, szy, brightness, coverage);
+                RwRenderStateSet(8, (void*)0);
+                RwRenderStateSet(6, (void*)0);
+                RwRenderStateSet(12, (void*)1);
+                RwRenderStateSet(10, (void*)2);
+                RwRenderStateSet(11, (void*)2);
+        
+                RwRenderStateSet(1, *(gpCoronaTexture[2]));
+                float sz = *MoonSize * 2.7f + 4.0f;
+                int brightness = decoverage * moonfadeout;
+                RenderBufferedOneXLUSprite(screenpos, szx * sz, szy * sz, brightness, brightness, brightness, 255, 1.0f / screenpos.z, 255);
+                FlushSpriteBuffer();
+            }
         }
     }
     
@@ -113,27 +82,16 @@ DECL_HOOKv(RenderClouds)
     RwRenderStateSet(11, (void*)2);
 }
 
-uintptr_t FireSniper_BackTo;
 #define DotProduct(v1, v2) (v1.z * v2.z + v1.y * v2.y + v1.x * v2.x)
-extern "C" void FireSniper_Patch(CVector& m_vecFront)
+DECL_HOOKv(FrontNormie, CVector& vec)
 {
-    float dotprod = DotProduct(m_vecFront, MoonVector);
-    if(dotprod > 0.997f) *MoonSize = (*MoonSize + 1) % 8;
-}
-// Need to fix that patch!
-__attribute__((optnone)) __attribute__((naked)) void FireSniper_Inject(void)
-{
-    asm volatile(
-        "ADD             R0, R0, #0x2D8\n"
-        "PUSH            {R4}\n"
-        "BL              FireSniper_Patch\n");
-    asm volatile(
-        "MOV             R12, %0\n"
-    :: "r" (FireSniper_BackTo));
-    asm volatile(
-        "POP             {R4}\n"
-        "ADD             R0, SP, #0x90\n"
-        "MOV             PC, R12");
+    FrontNormie(vec);
+    if(MoonVisible)
+    {
+        FrontNormie(MoonVector);
+        float dotprod = DotProduct(vec, MoonVector);
+        if(dotprod > 0.997f) *MoonSize = (*MoonSize + 1) % 8;
+    }
 }
 
 uintptr_t RenderMoon_BackTo;
@@ -214,17 +172,9 @@ extern "C" void OnModLoad()
     SET_TO(TheCamera, aml->GetSym(hGTASA, "TheCamera"));
     SET_TO(m_VectorToSun, aml->GetSym(hGTASA, "_ZN10CTimeCycle13m_VectorToSunE"));
     
-    //HOOKBL(RenderClouds, pGTASA + 0x14EA6E + 0x1); // RenderScene
-    //HOOKBL(RenderClouds, pGTASA + 0x14D8DC + 0x1); // NewTileRendererCB
-    
-    FireSniper_BackTo = pGTASA + 0x5DD80E + 0x1;
-    aml->Redirect(pGTASA + 0x5DD7F0 + 0x1, (uintptr_t)FireSniper_Inject);
+    aml->PlaceB(pGTASA + 0x5DD7F0 + 0x1, pGTASA + 0x5DD80E + 0x1);
+    HOOKBLX(FrontNormie, pGTASA + 0x5DD810 + 0x1);
 
-    // A fix for moon disappearing on Sunny->Extrasunny weather !!!
     RenderMoon_BackTo = pGTASA + 0x59EEE2 + 0x1;
     aml->Redirect(pGTASA + 0x59EC30 + 0x1, (uintptr_t)RenderMoon_Inject);
-    
-    //void *gles = aml->GetLibHandle("libGLESv2.so");
-    //SET_TO(glColorMask, aml->GetSym(gles, "glColorMask"));
-    //logger->Info("0x%08X", glColorMask);
 }
