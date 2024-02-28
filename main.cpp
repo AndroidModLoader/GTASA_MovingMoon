@@ -11,7 +11,7 @@
 #include "SimpleGTA.h"
 #include "vars.inl"
 
-MYMOD(net.rusjj.movingmoon, Moving Moon, 1.0, CowBoy69 & RusJJ)
+MYMOD(net.rusjj.movingmoon, Moving Moon, 1.0.1, CowBoy69 & RusJJ)
 NEEDGAME(com.rockstargames.gtasa)
 
 uintptr_t pGTASA;
@@ -70,7 +70,7 @@ extern "C" void RenderMoon_Patch()
             MoonVector = { -vecsun.x, -vecsun.y, -(IMPROVED_MOON_HEIGHT / 150.0f) * vecsun.z }; // normalized vector (important for DotProd)
             RwV3d pos = { 150.0f * MoonVector.x, 150.0f * MoonVector.y, 150.0f * MoonVector.z };
 
-            CamPos = &(*(CMatrix**)(TheCamera + 20))->pos;
+            CamPos = &(*(CMatrix**)(TheCamera + BYBIT(20, 24)))->pos;
             
             worldpos = pos + *CamPos;
             if(CalcScreenCoors(&worldpos, &screenpos, &szx, &szy, false, true))
